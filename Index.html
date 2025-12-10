@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Admin Panel - Advanced</title>
+<style>
+body{
+  font-family:'Poppins',sans-serif;
+  background: linear-gradient(135deg, #1e2a78, #5b9df2);
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  height:100vh;
+  color:white;
+}
+.card{
+  background: rgba(255,255,255,0.12);
+  padding:25px 35px;
+  border-radius:14px;
+  backdrop-filter:blur(10px);
+  box-shadow:0 4px 18px rgba(0,0,0,0.4);
+  text-align:center;
+  width:420px;
+  border:1px solid rgba(255,255,255,0.2);
+}
+input,button,select{
+  padding:10px 15px;
+  border-radius:8px;
+  border:none;
+  font-size:15px;
+  margin-top:10px;
+  width:100%;
+  outline:none;
+}
+input{
+  background:rgba(255,255,255,0.4);
+  color:black;
+}
+button{
+  background:#ffd94a;
+  font-weight:bold;
+  cursor:pointer;
+  color:#222;
+}
+button:hover{background:#ffbf00}
+hr{
+  margin:20px 0;
+  border-color:rgba(255,255,255,0.2);
+}
+.listBox{
+  text-align:left;
+  padding:10px;
+  background:rgba(255,255,255,0.12);
+  border:1px solid rgba(255,255,255,0.2);
+  border-radius:8px;
+  max-height:140px;
+  overflow-y:auto;
+}
+.title{
+  font-weight:600;
+  margin-top:12px;
+  margin-bottom:6px;
+  text-shadow:0 1px 4px rgba(0,0,0,0.6);
+}
+.smallBtn{
+  background:#ff4f4f;
+  color:white;
+  padding:5px 10px;
+  border-radius:6px;
+  cursor:pointer;
+  font-size:13px;
+  border:none;
+  margin-left:8px;
+}
+.smallBtn:hover{background:#e02727}
+</style>
+</head>
+<body>
+
+<div class="card" id="loginCard">
+  <h2>Admin Login</h2>
+  <input id="adminCode" placeholder="Enter admin code">
+  <button onclick="unlock()">Enter</button>
+  <p id="loginMsg"></p>
+</div>
+
+<div class="card" id="panelCard" style="display:none;">
+  <h2>Manage Spin Codes</h2>
+
+  <!-- ADD CODE -->
+  <input id="newCode" placeholder="New spin code">
+  <button onclick="addCode()">Add Code</button>
+  <button onclick="generateCode()">Generate Random Code</button>
+  <p id="addMsg"></p>
+
+  <hr>
+
+  <!-- EVENT SWITCH -->
+  <div class="title">Event Mode</div>
+  <select id="eventSwitch" onchange="saveEventToggle()">
+    <option value="false">OFF</option>
+    <option value="true">ON</option>
+  </select>
+
+  <hr>
+
+  <div class="title">✔ Unused Codes</div>
+  <div id="unusedList" class="listBox"></div>
+
+  <div class="title">⛔ Used Codes</div>
+  <div id="usedList" class="listBox"></div>
+
+  <hr>
+  <button class="smallBtn" style="width:100%;background:#ff0000;" onclick="resetAll()">RESET ALL CODES</button>
+</div>
+
+<script>
+// LOGIN
+function unlock(){
+  if(document.getElementById("adminCode").value === "2015"){
+    document.getElementById("loginCard").style.display="none";
+    document.getElementById("panelCard").style.display="block";
+    loadLists();
+    loadEventState();
+  } else {
+    document.getElementById("loginMsg").innerHTML="❌ Wrong admin code";
+  }
+}
+
+// LOAD EVENT DATA
+function loadEventState(){
+  let saved = localStorage.getItem("eventActive") || "false";
+  document.getElementById("eventSwitch").value = saved;
+}
+
+// SAVE EVENT TOGGLE
+function saveEventToggle(){
+  localStorage.setItem("eventActive", document.getElementById("eventSwitch").value);
+}
+
+// LOAD CODE LISTS
+function loadLists(){
+  let unused = JSON.parse(localStorage.getItem("validCodes")||"[]");
+  let used = JSON.parse(localStorage.getItem("usedCodes")||"[]");
+
+  document.getElementById("unusedList").innerHTML =
+    unused.length ?
+      unused.map(c=>`✔ ${c} <button class='smallBtn' onclick="deleteCode('${c}')">Delete</button>`).join("<br>")
+      : "<i>None yet</i>";
+
+  document.getElementById("usedList").innerHTML =
+    used.length ? used.map(c=>"⛔ "+c).join("<br>") : "<i>No used codes yet</i>";
+}
+
+// ADD CODE
+function addCode(){
+  let newCode=document.getElementById("newCode").value.trim();
+  if(!newCode){
+    document.getElementById("addMsg").innerHTML="⚠ Enter a code";
+    return;
+  }
+
+  let unused = JSON.parse(localStorage.getItem("validCodes")||"[]");
+  let used = JSON.parse(localStorage.getItem("usedCodes")||"[]");
+
+  if(unused.includes(newCode)){
+    document.getElementById("addMsg").innerHTML="⚠ Code already exists!";
+    return;
+  }
+  if(used.includes(newCode)){
+    document.getElementById("addMsg").innerHTML="⚠ Code already used!";
+    return;
+  }
+
+  unused.push(newCode);
+  localStorage.setItem("validCodes", JSON.stringify(unused));
+
+  document.getElementById("addMsg").innerHTML="✔ Code added!";
+  loadLists();
+}
+
+// GENERATE RANDOM CODE
+function generateCode(){
+  let random = "CODE" + Math.floor(Math.random()*9000+1000);
+  let unused = JSON.parse(localStorage.getItem("validCodes")||"[]");
+
+  if(!unused.includes(random)){
+    unused.push(random);
+    localStorage.setItem("validCodes", JSON.stringify(unused));
+    loadLists();
+  }
+}
+
+// DELETE ONE CODE
+function deleteCode(code){
+  let unused = JSON.parse(localStorage.getItem("validCodes")||"[]");
+  unused = unused.filter(c=>c!==code);
+  localStorage.setItem("validCodes", JSON.stringify(unused));
+  loadLists();
+}
+
+// RESET ALL CODES
+function resetAll(){
+  localStorage.removeItem("validCodes");
+  localStorage.removeItem("usedCodes");
+  loadLists();
+}
+
+loadLists();
+</script>
+
+</body>
+</html>
